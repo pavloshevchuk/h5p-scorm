@@ -1,2 +1,3 @@
-# h5p-scorm
-H5P SCORM
+# H5P SCORM
+
+Allows you to upload SCORM package.
