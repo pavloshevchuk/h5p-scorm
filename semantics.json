@@ -12,6 +12,8 @@
       "filename",
       "extracted",
       "url",
+      "type",
+      "params",
       "pages"
     ]
   },

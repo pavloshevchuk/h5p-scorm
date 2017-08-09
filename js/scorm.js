@@ -103,6 +103,10 @@ var H5P = H5P || {};
         id = item.id,
         url = decodeURIComponent(item.url);
 
+    if (cmi) {
+      cmi.location = '';
+    }
+
     this.navSetActive(id);
     $frame.attr('src', url);
     $frame.attr('allowFullScreen', '');
@@ -237,7 +241,10 @@ var H5P = H5P || {};
    * @returns {undefined}
    */
   H5P.Scorm.prototype.attach = function($wrapper) {
-    var self = this, height;
+    var self = this,
+        contentId = this.contentId,
+        height,
+        url;
 
     if (self.$scorm !== undefined || !this.scorm) {
       return;
@@ -249,15 +256,28 @@ var H5P = H5P || {};
       width: '100%',
       height: height + 'px',
       id: 'sco-iframe',
+      src: this.scorm.url,
       load: function() {
         self.trigger('loaded');
         self.trigger('resize');
       }
     });
 
+    if (this.scorm.params) {
+      url = this.scorm.url +
+          "?endpoint=" + encodeURIComponent(this.scorm.params.endpoint) +
+          "&auth=" + encodeURIComponent(this.scorm.params.auth) +
+          "&actor=" + encodeURIComponent(this.scorm.params.actor) +
+          "&registration=" + encodeURIComponent(this.scorm.params.registration);
+
+      self.$scorm.attr('src', url);
+    }
+
     $wrapper.addClass('h5p-scorm').css('min-height', height + 'px').html(self.$scorm);
 
     if (cmi) {
+      cmi.lms_init_url = H5PIntegration.baseUrl + '/ajax/scorm/' + contentId + '/api/fetch';
+      cmi.lms_commit_url = H5PIntegration.baseUrl + '/ajax/scorm/' + contentId + '/api/commit';
       cmi.commit_async = false;
     }
 
