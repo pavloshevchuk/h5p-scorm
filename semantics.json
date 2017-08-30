@@ -9,8 +9,10 @@
     ],
     "widget": "scormFile",
     "extraAttributes": [
+      "attempt_id",
       "filename",
       "extracted",
+      "nid",
       "url",
       "type",
       "params",

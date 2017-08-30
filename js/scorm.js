@@ -14,24 +14,13 @@ var H5P = H5P || {};
   H5P.Scorm = function(params, id) {
     H5P.EventDispatcher.call(this);
 
-    if (params.scorm === undefined || !(params.scorm instanceof Object)) {
-      this.scorm = false;
-    }
-    else {
-      this.scorm = params.scorm;
-    }
-
-    if (params.aspect !== undefined) {
-      this.aspect = params.aspect;
-    }
-    else {
-      this.aspect = 0.75;
-    }
+    this.scorm = params.scorm || {};
+    this.aspect = params.aspect || 0.75;
 
     this.on('resize', function() {
       var $actions = $('.h5p-actions'),
-        $download = $('.h5p-button.h5p-export', $actions),
-        html;
+          $download = $('.h5p-button.h5p-export', $actions),
+          html;
 
       // Recreate download button without event handlers.
       $download.not('.h5p-export-disabled').each(function() {
@@ -53,21 +42,32 @@ var H5P = H5P || {};
    */
   H5P.Scorm.prototype.attachNavigation = function($wrapper) {
     var html = '<div id="sco-nav-wrapper">' +
-      '<div id="sco-nav">' +
-      '<button id="sco-nav-first"><i class="fa fa-angle-double-left" aria-hidden="true"></i></button>' +
-      '<button id="sco-nav-prev"><i class="fa fa-angle-left" aria-hidden="true"></i></button>' +
-      '<button id="sco-nav-next"><i class="fa fa-angle-right" aria-hidden="true"></i></button>' +
-      '<button id="sco-nav-last"><i class="fa fa-angle-double-right" aria-hidden="true"></i></button>' +
-      '</div>' +
-      '</div>';
+        '<div id="sco-nav">' +
+        '<button id="sco-nav-first"><i class="fa fa-angle-double-left" aria-hidden="true"></i></button>' +
+        '<button id="sco-nav-prev"><i class="fa fa-angle-left" aria-hidden="true"></i></button>' +
+        '<button id="sco-nav-next"><i class="fa fa-angle-right" aria-hidden="true"></i></button>' +
+        '<button id="sco-nav-last"><i class="fa fa-angle-double-right" aria-hidden="true"></i></button>' +
+        '</div>' +
+        '</div>',
+        id = this.scorm.params.itemId,
+        itemId = 0;
 
     $wrapper.append(html);
 
     this.$navWrapper = $('#sco-nav-wrapper');
     this.navDisable();
 
-    if (typeof this.scorm.pages[0] == 'object') {
-      this.navTo(this.scorm.pages[0]);
+    if (typeof this.scorm.pages[0] === 'object') {
+      if (id) {
+        $.each(this.scorm.pages, function(key, value) {
+          if (id == value.id) {
+            itemId = key;
+            return;
+          }
+        });
+      }
+
+      this.navTo(this.scorm.pages[itemId]);
     }
 
     var self = this;
@@ -101,11 +101,15 @@ var H5P = H5P || {};
   H5P.Scorm.prototype.navTo = function(item) {
     var $frame = $('#sco-iframe', this.$wrapper),
         id = item.id,
-        url = decodeURIComponent(item.url);
+        url = decodeURIComponent(item.url),
+        cmi = window.cmi || {};
 
     if (cmi) {
       cmi.location = '';
     }
+
+    cmi.setValue('cmi.page_id', item.id);
+    cmi.setValue('cmi.page_title', item.title);
 
     this.navSetActive(id);
     $frame.attr('src', url);
@@ -118,7 +122,7 @@ var H5P = H5P || {};
   H5P.Scorm.prototype.navSetActive = function(id) {
     var length = this.scorm.pages.length;
 
-    if (length == 0) {
+    if (length === 0) {
       return;
     }
 
@@ -132,7 +136,7 @@ var H5P = H5P || {};
     while (index < length) {
       item = this.scorm.pages[index];
 
-      if (item.id == id) {
+      if (item.id === id) {
         item.active = true;
         found = true;
         break;
@@ -188,7 +192,7 @@ var H5P = H5P || {};
   H5P.Scorm.prototype.navMoveLast = function() {
     if (this.scorm.pages.length > 0) {
       var i = this.scorm.pages.length - 1,
-        item = this.scorm.pages[i];
+          item = this.scorm.pages[i];
 
       this.navTo(item);
     }
@@ -242,9 +246,9 @@ var H5P = H5P || {};
    */
   H5P.Scorm.prototype.attach = function($wrapper) {
     var self = this,
-        contentId = this.contentId,
         height,
-        url;
+        url,
+        cmi = window.cmi || {};
 
     if (self.$scorm !== undefined || !this.scorm) {
       return;
@@ -256,40 +260,45 @@ var H5P = H5P || {};
       width: '100%',
       height: height + 'px',
       id: 'sco-iframe',
-      src: this.scorm.url,
       load: function() {
         self.trigger('loaded');
         self.trigger('resize');
       }
     });
 
-    if (this.scorm.params) {
+    // TinCan.
+    if (this.scorm.type === 'tincan' && this.scorm.params) {
       url = this.scorm.url +
           "?endpoint=" + encodeURIComponent(this.scorm.params.endpoint) +
           "&auth=" + encodeURIComponent(this.scorm.params.auth) +
-          "&actor=" + encodeURIComponent(this.scorm.params.actor) +
-          "&registration=" + encodeURIComponent(this.scorm.params.registration);
+          "&actor=" + encodeURIComponent(this.scorm.params.actor);
+
+      if (this.scorm.params.registration) {
+        url += "&registration=" + encodeURIComponent(this.scorm.params.registration);
+      }
 
       self.$scorm.attr('src', url);
     }
+    // SCORM 1.2 or 2004.
+    else {
+      if (cmi && self.scorm.attempt_id) {
+        cmi.lms_init_url = H5PIntegration.baseUrl + '/ajax/scorm/api/fetch/' + self.scorm.attempt_id;
+        cmi.lms_commit_url = H5PIntegration.baseUrl + '/ajax/scorm/api/commit/' + self.scorm.attempt_id;
+        cmi.commit_async = false;
+      }
 
-    $wrapper.addClass('h5p-scorm').css('min-height', height + 'px').html(self.$scorm);
-
-    if (cmi) {
-      cmi.lms_init_url = H5PIntegration.baseUrl + '/ajax/scorm/' + contentId + '/api/fetch';
-      cmi.lms_commit_url = H5PIntegration.baseUrl + '/ajax/scorm/' + contentId + '/api/commit';
-      cmi.commit_async = false;
+      setTimeout(function() {
+        if (self.scorm.pages.length > 1) {
+          self.$wrapper = $wrapper;
+          self.attachNavigation($wrapper);
+        }
+        else if (typeof self.scorm.pages[0] === 'object') {
+          self.navTo(self.scorm.pages[0]);
+        }
+      }, 500);
     }
 
-    setTimeout(function() {
-      if (self.scorm.pages.length > 1) {
-        self.$wrapper = $wrapper;
-        self.attachNavigation($wrapper);
-      }
-      else if (typeof self.scorm.pages[0] == 'object') {
-        self.navTo(self.scorm.pages[0]);
-      }
-    }, 500);
+    $wrapper.addClass('h5p-scorm').css('min-height', height + 'px').html(self.$scorm);
   };
 
   return H5P.Scorm;

@@ -1,299 +1,295 @@
 /**
  * @file
  * SCORM 2004 API Implementation.
- *
- * Some portions adapted from the Moodle Scorm module.
  */
 
-function SCORM_API_2004() {
-  var Initialized = false,
-      Terminated = false,
-      errorCode = "0";
+(function($) {
+  'use strict';
 
-  function Initialize(param) {
-    var result = "false",
-        errorCode = "0";
+  var cmi = window.cmi || {},
+      errorCode = '0',
+      initialized = false,
+      terminated = false;
 
-    AppendToSCOLog("User Agent: " + navigator.userAgent);
+  window.API_1484_11 = {
+    /**
+     * Initialize.
+     *
+     * @param param
+     * @returns {string}
+     * @constructor
+     */
+    Initialize: function(param) {
+      var result = 'false';
 
-    if (FlashDetect.installed) {
-      AppendToSCOLog("Flash is installed - Version info: " + FlashDetect.raw);
-    }
-    else {
-      AppendToSCOLog("Flash was not detected");
-    }
+      errorCode = '0';
 
-    if (param == "") {
-      if (!Initialized) {
-        Initialized = cmi.init("2004");
+      if (param) {
+        // Argument error.
+        errorCode = '201';
 
-        if (!Initialized) {
+        return result;
+      }
+
+      if (!initialized) {
+        $.when(cmi.init('2004')).done(function(result) {
+          initialized = result;
+        });
+
+        if (!initialized) {
           // Init error.
-          errorCode = "102";
+          errorCode = '102';
         }
         else {
-          Terminated = false;
-          result = "true";
+          terminated = false;
+          result = 'true';
         }
       }
       else {
         // Already initialized.
-        errorCode = "103";
+        errorCode = '103';
       }
-    }
-    else {
-      // Argument error.
-      errorCode = "201";
-    }
 
-    LogSCOAPICall("Initialize", param, "", errorCode);
+      return result;
+    },
 
-    return result;
-  }
+    /**
+     * Terminate.
+     *
+     * @param param
+     * @returns {string}
+     * @constructor
+     */
+    Terminate: function(param) {
+      var result = 'false';
 
-  function Terminate(param) {
-    var result = "false",
-        errorCode = "0";
+      errorCode = '0';
 
-    if (param == "") {
-      if (Initialized) {
-        Initialized = false;
-        Terminated = true;
+      if (param !== '') {
+        // Argument error.
+        errorCode = '201';
+
+        return result;
+      }
+
+      if (initialized) {
+        initialized = false;
+        terminated = true;
+        result = 'true';
 
         // Store data.
         cmi.commit();
-
-        result = "true";
-
-        if (adl_nav_request != "_none_") {
-          switch (adl_nav_request) {
-            case 'continue':
-              break;
-            case 'previous':
-              break;
-            case 'choice':
-              break;
-            case 'jump':
-              break;
-            case 'exit':
-              break;
-            case 'exitAll':
-              break;
-            case 'abandon':
-              break;
-            case 'abandonAll':
-              break;
-          }
-        }
       }
       else {
-        if (Terminated) {
+        if (terminated) {
           // Term after term.
-          errorCode = "113";
+          errorCode = '113';
         }
         else {
           // Term before init.
-          errorCode = "112";
+          errorCode = '112';
         }
       }
-    }
-    else {
-      // Argument error.
-      errorCode = "201";
-    }
 
-    LogSCOAPICall("Terminate", param, "", errorCode);
+      return result;
+    },
 
-    return result;
-  }
+    /**
+     * Get value.
+     *
+     * @param element
+     * @returns {string}
+     * @constructor
+     */
+    GetValue: function(element) {
+      var result = '';
 
-  function GetValue(element) {
-    var result = "",
-        errorCode = "0",
-        logResult;
+      errorCode = '0';
 
-    if (Initialized) {
-      if (element != "") {
-        // Get element value.
-        result = cmi.getValue(element);
+      if (initialized) {
+        if (element !== '') {
+          // Get element value.
+          result = cmi.getValue(element);
+        }
+        else {
+          // Argument error.
+          errorCode = '201';
+        }
       }
       else {
-        // Argument error.
-        errorCode = "201";
+        if (terminated) {
+          // Get value after term.
+          errorCode = '123';
+        }
+        else {
+          // Get value before init.
+          errorCode = '122';
+        }
       }
-    }
-    else {
-      if (Terminated) {
-        // Get value after term.
-        errorCode = "123";
-      }
-      else {
-        // Get value before init.
-        errorCode = "122";
-      }
-    }
 
-    logResult = result;
+      return result;
+    },
 
-    if (!cmi.log_suspend && element == "suspend_data") {
-      logResult = "(Value Omitted)";
-    }
+    /**
+     * Set value.
+     *
+     * @param element
+     * @param value
+     * @returns {string}
+     * @constructor
+     */
+    SetValue: function(element, value) {
+      var result = 'false';
 
-    LogSCOAPICall("GetValue", element, logResult, errorCode);
+      errorCode = '0';
 
-    return result;
-  }
+      if (initialized) {
+        if (element === '') {
+          // Argument error.
+          errorCode = '201';
 
-  function SetValue(element, value) {
-    var result = "false",
-        errorCode = "0",
-        logValue;
+          return result;
+        }
 
-    if (Initialized) {
-      if (element != "") {
         // Store element value.
         if (!cmi.setValue(element, value)) {
           // Set error.
-          errorCode = "351";
+          errorCode = '351';
         }
         else {
-          result = "true";
+          result = 'true';
         }
       }
       else {
+        if (terminated) {
+          // Store data after term.
+          errorCode = '133';
+        }
+        else {
+          // Store data before init.
+          errorCode = '132';
+        }
+      }
+
+      return result;
+    },
+
+    /**
+     * Commit.
+     *
+     * @param param
+     * @returns {string}
+     * @constructor
+     */
+    Commit: function(param) {
+      var result = 'false';
+
+      errorCode = '0';
+
+      if (param !== '') {
         // Argument error.
-        errorCode = "201";
+        errorCode = '201';
+
+        return result;
       }
-    }
-    else {
-      if (Terminated) {
-        // Store data after term.
-        errorCode = "133";
-      }
-      else {
-        // Store data before init.
-        errorCode = "132";
-      }
-    }
 
-    logValue = value;
-
-    if (!cmi.log_suspend && element == "cmi.suspend_data") {
-      logValue = "(Value Omitted)";
-    }
-
-    LogSCOAPICall("SetValue", element, logValue, errorCode);
-
-    return result;
-  }
-
-  function Commit(param) {
-    var result = "false",
-        errorCode = "0";
-
-    if (param == "") {
-      if (Initialized) {
+      if (initialized) {
         // Store data.
         if (cmi.commit()) {
-          result = "true";
+          result = 'true';
         }
         else {
           // Commit error.
-          errorCode = "391";
+          errorCode = '391';
         }
       }
       else {
-        if (Terminated) {
+        if (terminated) {
           // Commit after term.
-          errorCode = "143";
+          errorCode = '143';
         }
         else {
           // Commit before init.
-          errorCode = "142";
+          errorCode = '142';
         }
       }
-    }
-    else {
-      // Argument error.
-    }
 
-    LogSCOAPICall("Commit", param, "", errorCode);
+      return result;
+    },
 
-    return result;
-  }
+    /**
+     * Get last error.
+     *
+     * @returns {string}
+     * @constructor
+     */
+    GetLastError: function() {
+      return errorCode;
+    },
 
-  function GetLastError() {
-    LogSCOAPICall("GetLastError", "", "", errorCode);
+    /**
+     * Get error string.
+     *
+     * @param param
+     * @returns {*}
+     * @constructor
+     */
+    GetErrorString: function(param) {
+      if (!param) {
+        return '';
+      }
 
-    return errorCode;
-  }
-
-  function GetErrorString(param) {
-    if (param != "") {
-      var errorString = [];
-
-      errorString["0"] = "No error";
-      errorString["101"] = "General exception";
-      errorString["102"] = "General initialization failure";
-      errorString["103"] = "Already initialized";
-      errorString["104"] = "Content instance terminated";
-      errorString["111"] = "General termination failure";
-      errorString["112"] = "Termination before initialization";
-      errorString["113"] = "Termination after termination";
-      errorString["122"] = "Retrieve data before initialization";
-      errorString["123"] = "Retrieve data after termination";
-      errorString["132"] = "Store data before initialization";
-      errorString["133"] = "Store data after termination";
-      errorString["142"] = "Commit before initialization";
-      errorString["143"] = "Commit data after termination";
-      errorString["201"] = "General argument error";
-      errorString["301"] = "General get failure";
-      errorString["351"] = "General set failure";
-      errorString["391"] = "General commit failure";
-      errorString["401"] = "Undefined data model element";
-      errorString["402"] = "Unimplemented data model element";
-      errorString["403"] = "Data model element not initialized";
-      errorString["404"] = "Data model element is read only";
-      errorString["405"] = "Data model element is write only";
-      errorString["406"] = "Data model element type mismatch";
-      errorString["407"] = "Data model element value out of range";
-      errorString["408"] = "Data model dependency not established";
-
-      LogSCOAPICall("GetErrorString", param, errorString[param], 0);
+      var errorString = {
+        '0': 'No error',
+        '101': 'General exception',
+        '102': 'General initialization failure',
+        '103': 'Already initialized',
+        '104': 'Content instance terminated',
+        '111': 'General termination failure',
+        '112': 'Termination before initialization',
+        '113': 'Termination after termination',
+        '122': 'Retrieve data before initialization',
+        '123': 'Retrieve data after termination',
+        '132': 'Store data before initialization',
+        '133': 'Store data after termination',
+        '142': 'Commit before initialization',
+        '143': 'Commit data after termination',
+        '201': 'General argument error',
+        '301': 'General get failure',
+        '351': 'General set failure',
+        '391': 'General commit failure',
+        '401': 'Undefined data model element',
+        '402': 'Unimplemented data model element',
+        '403': 'Data model element not initialized',
+        '404': 'Data model element is read only',
+        '405': 'Data model element is write only',
+        '406': 'Data model element type mismatch',
+        '407': 'Data model element value out of range',
+        '408': 'Data model dependency not established'
+      };
 
       return errorString[param];
+    },
+
+    /**
+     * Get diagnostic.
+     *
+     * @returns {string}
+     * @constructor
+     */
+    GetDiagnostic: function() {
+      var result = '';
+
+      if (cmi.diagnostic) {
+        result = cmi.diagnostic;
+        cmi.diagnostic = '';
+      }
+      else if (errorCode) {
+        result = errorCode;
+      }
+
+      return result;
     }
-    else {
-      LogSCOAPICall("GetErrorString", param, "No error string found!", 0);
+  };
 
-      return "";
-    }
-  }
-
-  function GetDiagnostic(param) {
-    var result = "";
-
-    if (cmi.diagnostic != "") {
-      result = cmi.diagnostic;
-      cmi.diagnostic = "";
-    }
-    else if (errorCode != "") {
-      result = errorCode;
-    }
-
-    LogSCOAPICall("GetDiagnostic", param, result, 0);
-
-    return result;
-  }
-
-  this.Initialize = Initialize;
-  this.Terminate = Terminate;
-  this.GetValue = GetValue;
-  this.SetValue = SetValue;
-  this.Commit = Commit;
-  this.GetLastError = GetLastError;
-  this.GetErrorString = GetErrorString;
-  this.GetDiagnostic = GetDiagnostic;
-}
-
-var API_1484_11 = new SCORM_API_2004();
+})(H5P.jQuery);

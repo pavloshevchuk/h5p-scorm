@@ -1,238 +1,253 @@
 /**
  * @file
  * SCORM 1.2 API Implementation.
- *
- * Some portions adapted from the Moodle Scorm module.
  */
 
-function SCORM_API_1_2() {
-  var Initialized = false,
-      errorCode = "0";
+(function($) {
+  'use strict';
 
-  function LMSInitialize(param) {
-    AppendToSCOLog("User Agent: " + navigator.userAgent);
+  var cmi = window.cmi || {},
+      errorCode = '0',
+      initialized = false;
 
-    if (FlashDetect.installed) {
-      AppendToSCOLog("Flash is installed - Version info: " + FlashDetect.raw);
-    }
-    else {
-      AppendToSCOLog("Flash was not detected");
-    }
+  window.API = {
+    /**
+     * Initialize.
+     *
+     * @param param
+     * @returns {boolean}
+     * @constructor
+     */
+    LMSInitialize: function(param) {
+      var result = false;
 
-    var result = "false",
-        errorCode = "0";
+      errorCode = '0';
 
-    if (param == "") {
-      if (!Initialized) {
-        Initialized = cmi.init("1.2");
-        if (Initialized) {
-          result = "true";
+      if (param !== '') {
+        // Argument error.
+        errorCode = '201';
+
+        return result;
+      }
+
+      if (!initialized) {
+        $.when(cmi.init('1.2')).done(function(result) {
+          initialized = result;
+        });
+
+        if (initialized) {
+          result = true;
         }
         else {
           // Init error.
-          errorCode = "101";
+          errorCode = '101';
         }
       }
       else {
         // Already initialized.
-        errorCode = "101";
+        errorCode = '101';
       }
-    }
-    else {
-      // Argument error.
-      errorCode = "201";
-    }
 
-    LogSCOAPICall("LMSInitialize", param, "", errorCode);
+      return result;
+    },
 
-    return result;
-  }
+    /**
+     * Finish.
+     *
+     * @param param
+     * @returns {string}
+     * @constructor
+     */
+    LMSFinish: function(param) {
+      var result = 'false';
 
-  function LMSFinish(param) {
-    var result = "false",
-        errorCode = "0";
+      errorCode = '0';
 
-    if (param == "") {
-      if (Initialized) {
-        Initialized = false;
+      if (param !== '') {
+        // Argument error.
+        errorCode = '201';
 
-        // Store data.
-        cmi.commit();
+        return result;
+      }
 
-        result = "true";
+      if (initialized) {
+        initialized = false;
+
+        // Store data and exit (close window).
+        cmi.commit(true);
+        result = 'true';
       }
       else {
         // Not initialized.
-        errorCode = "301";
+        errorCode = '301';
       }
-    }
-    else {
-      // Argument error.
-      errorCode = "201";
-    }
 
-    LogSCOAPICall("LMSFinish", param, "", errorCode);
+      return result;
+    },
 
-    return result;
-  }
+    /**
+     * Get value.
+     *
+     * @param element
+     * @returns {string}
+     * @constructor
+     */
+    LMSGetValue: function(element) {
+      var result = '';
 
-  function LMSGetValue(element) {
-    var result = "",
-        errorCode = "0",
-        logResult;
+      errorCode = '0';
 
-    if (Initialized) {
-      if (element != "") {
-
-        // Get element value.
-        result = cmi.getValue(element);
-
+      if (initialized) {
+        if (element !== '') {
+          // Get element value.
+          result = cmi.getValue(element);
+        }
+        else {
+          // Argument error.
+          errorCode = '201';
+        }
       }
       else {
-        // Argument error.
-        errorCode = "201";
+        // Not initialized.
+        errorCode = '301';
       }
-    }
-    else {
-      // Not initialized.
-      errorCode = "301";
-    }
 
-    logResult = result;
+      return result;
+    },
 
-    if (!cmi.log_suspend && element == "cmi.suspend_data") {
-      logResult = "(Value Omitted)";
-    }
+    /**
+     * Set value.
+     *
+     * @param element
+     * @param value
+     * @returns {string}
+     * @constructor
+     */
+    LMSSetValue: function(element, value) {
+      var result = 'false';
 
-    LogSCOAPICall("LMSGetValue", element, logResult, errorCode);
+      errorCode = '0';
 
-    return result;
-  }
+      if (!initialized) {
+        // Not initialized.
+        errorCode = '301';
 
-  function LMSSetValue(element, value) {
-    var result = "false",
-        errorCode = "0",
-        logValue;
+        return result;
+      }
 
-    if (Initialized) {
-      if (element != "") {
+      if (element !== '') {
         // store element value
         if (!cmi.setValue(element, value)) {
           // General error.
-          errorCode = "101";
+          errorCode = '101';
         }
         else {
-          result = "true";
+          result = 'true';
         }
       }
       else {
         // Argument error.
-        errorCode = "201";
+        errorCode = '201';
       }
-    }
-    else {
-      // Not initialized.
-      errorCode = "301";
-    }
 
-    logValue = value;
+      return result;
+    },
 
-    if (!cmi.log_suspend && element == "cmi.suspend_data") {
-      logValue = "(Value Omitted)";
-    }
+    /**
+     * Commit.
+     *
+     * @param param
+     * @returns {string}
+     * @constructor
+     */
+    LMSCommit: function(param) {
+      var result = 'false';
 
-    LogSCOAPICall("LMSSetValue", element, logValue, errorCode);
+      errorCode = '0';
 
-    return result;
-  }
+      if (param !== '') {
+        // Argument error.
+        errorCode = '201';
 
-  function LMSCommit(param) {
-    var result = "false",
-        errorCode = "0";
+        return result;
+      }
 
-    if (param == "") {
-      if (Initialized) {
-
+      if (initialized) {
         // Store data here.
         if (cmi.commit()) {
-          result = "true";
+          result = 'true';
         }
         else {
           // Commit error.
-          errorCode = "101";
+          errorCode = '101';
         }
       }
       else {
         // Not initialized.
-        errorCode = "301";
+        errorCode = '301';
       }
-    } else {
-      // Argument error.
-      errorCode = "201";
-    }
 
-    LogSCOAPICall("LMSCommit", param, "", errorCode);
+      return result;
+    },
 
-    return result;
-  }
+    /**
+     * LMS Get last error.
+     *
+     * @returns {string}
+     * @constructor
+     */
+    LMSGetLastError: function() {
+      return errorCode;
+    },
 
-  function LMSGetLastError() {
-    LogSCOAPICall("LMSGetLastError", "", "", errorCode);
+    /**
+     * Get error string.
+     *
+     * @param param
+     * @returns {*}
+     * @constructor
+     */
+    LMSGetErrorString: function(param) {
+      if (!param) {
+        return '';
+      }
 
-    return errorCode;
-  }
-
-  function LMSGetErrorString(param) {
-    if (param != "") {
-      var errorString = [];
-
-      errorString["0"] = "No error";
-      errorString["101"] = "General exception";
-      errorString["201"] = "Invalid argument error";
-      errorString["202"] = "Element cannot have children";
-      errorString["203"] = "Element not an array - cannot have count";
-      errorString["301"] = "Not initialized";
-      errorString["401"] = "Not implemented error";
-      errorString["402"] = "Invalid set value, element is a keyword";
-      errorString["403"] = "Element is read only";
-      errorString["404"] = "Element is write only";
-      errorString["405"] = "Incorrect data type";
-
-      LogSCOAPICall("LMSGetErrorString", param, errorString[param], 0);
+      var errorString = {
+        '0': 'No error',
+        '101': 'General exception',
+        '201': 'Invalid argument error',
+        '202': 'Element cannot have children',
+        '203': 'Element not an array - cannot have count',
+        '301': 'Not initialized',
+        '401': 'Not implemented error',
+        '402': 'Invalid set value, element is a keyword',
+        '403': 'Element is read only',
+        '404': 'Element is write only',
+        '405': 'Incorrect data type'
+      };
 
       return errorString[param];
+    },
+
+    /**
+     * Get diagnostic.
+     *
+     * @returns {string}
+     * @constructor
+     */
+    LMSGetDiagnostic: function() {
+      var result = '';
+
+      if (cmi.diagnostic) {
+        result = cmi.diagnostic;
+        cmi.diagnostic = '';
+      }
+      else if (errorCode) {
+        result = errorCode;
+      }
+
+      return result;
     }
-    else {
-      LogSCOAPICall("LMSGetErrorString", param, "No error string found!", 0);
+  };
 
-      return "";
-    }
-  }
-
-  function LMSGetDiagnostic(param) {
-    var result = "";
-
-    if (cmi.diagnostic != "") {
-      result = cmi.diagnostic;
-      cmi.diagnostic = "";
-    }
-    else if (errorCode != "") {
-      result = errorCode;
-    }
-
-    LogSCOAPICall("LMSGetDiagnostic", param, result, 0);
-
-    return result;
-  }
-
-  this.LMSInitialize = LMSInitialize;
-  this.LMSFinish = LMSFinish;
-  this.LMSGetValue = LMSGetValue;
-  this.LMSSetValue = LMSSetValue;
-  this.LMSCommit = LMSCommit;
-  this.LMSGetLastError = LMSGetLastError;
-  this.LMSGetErrorString = LMSGetErrorString;
-  this.LMSGetDiagnostic = LMSGetDiagnostic;
-}
-
-var API = new SCORM_API_1_2();
+})(H5P.jQuery);

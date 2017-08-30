@@ -1,10 +1,10 @@
 {
-  "title": "SCORM",
+  "title": "SCORM/xAPI",
   "machineName": "H5P.Scorm",
   "description": "Upload a SCORM package.",
   "majorVersion": 1,
-  "minorVersion": 0,
-  "patchVersion": 6,
+  "minorVersion": 1,
+  "patchVersion": 4,
   "runnable": 1,
   "author": "Pavlo Shevchuk",
   "license": "MIT",
@@ -13,19 +13,13 @@
   ],
   "preloadedJs": [
     {
-      "path": "js/api/flash_detect.js"
+      "path": "js/api/datamodel.js"
     },
     {
       "path": "js/api/api_1_2.js"
     },
     {
       "path": "js/api/api_2004.js"
-    },
-    {
-      "path": "js/api/datamodel.js"
-    },
-    {
-      "path": "js/api/debug.js"
     },
     {
       "path": "js/scorm.js"
