@@ -1,3 +1,3 @@
-# H5P SCORM
+# H5P SCORM/xAPI
 
-Allows you to upload SCORM package.
+Allows you to upload SCORM/xAPI package.
