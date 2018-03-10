@@ -10,6 +10,7 @@
         scorm_version: '',
         lms_init_url: '',
         lms_commit_url: '',
+        lms_passed_url: '',
         lms_completed_auto_exit: false,
         lms_completed_url: '',
         lms_completed_url_delay: 5000,
@@ -707,6 +708,7 @@
   cmi.setValue = function(property, value) {
     var result = true,
         force_commit = false,
+        force_passed = false,
         completed = false,
         item = property.split('.'),
         n, n2, c, inter, url;
@@ -762,6 +764,11 @@
           // If attempt is marked as passed, don't allow sco to mark as failed.
           if (cmi.success_status === 'passed' && value === 'failed') {
             break;
+          }
+
+          // Set force_passed value.
+          if (value === 'passed') {
+            force_passed = true;
           }
 
           cmi.success_status = value;
@@ -1128,6 +1135,11 @@
               }
 
               if (value === 'passed' || value === 'failed') {
+                // Set force_passed value.
+                if (value === 'passed') {
+                  force_passed = true;
+                }
+
                 cmi.success_status = value;
 
                 cmi.activity_report.push({
@@ -1219,6 +1231,11 @@
       cmi.commit();
     }
 
+    // Force a passed.
+    if (force_passed) {
+      cmi.passed();
+    }
+
     // Navigate on completion if set.
     if (completed && cmi.lms_completed_auto_exit) {
       url = cmi.lms_exit_url;
@@ -1282,6 +1299,20 @@
     }
 
     return result;
+  };
+
+  /**
+   * Make passed request.
+   */
+  cmi.passed = function() {
+    if (cmi.lms_passed_url !== '') {
+      $.ajax({
+        url: cmi.lms_passed_url,
+        type: 'POST',
+        async: cmi.commit_async,
+        cache: false
+      });
+    }
   };
 
   /**

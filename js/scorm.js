@@ -16,20 +16,6 @@ var H5P = H5P || {};
 
     this.scorm = params.scorm || {};
     this.aspect = params.aspect || 0.75;
-
-    this.on('resize', function() {
-      var $actions = $('.h5p-actions'),
-          $download = $('.h5p-button.h5p-export', $actions),
-          html;
-
-      // Recreate download button without event handlers.
-      $download.not('.h5p-export-disabled').each(function() {
-        $(this).addClass('h5p-export-disabled');
-        html = $(this)[0].outerHTML;
-        $(this).remove();
-        $actions.prepend(html);
-      });
-    });
   };
 
   H5P.Scorm.prototype = Object.create(H5P.EventDispatcher.prototype);
@@ -266,6 +252,13 @@ var H5P = H5P || {};
       }
     });
 
+    if (cmi && self.scorm.attempt_id) {
+      cmi.lms_init_url = H5PIntegration.baseUrl + '/ajax/scorm/api/fetch/' + self.scorm.attempt_id;
+      cmi.lms_commit_url = H5PIntegration.baseUrl + '/ajax/scorm/api/commit/' + self.scorm.attempt_id;
+      cmi.lms_passed_url = H5PIntegration.baseUrl + '/ajax/scorm/api/passed/' + self.scorm.attempt_id;
+      cmi.commit_async = false;
+    }
+
     // TinCan.
     if (this.scorm.type === 'tincan' && this.scorm.params) {
       url = this.scorm.url +
@@ -277,16 +270,14 @@ var H5P = H5P || {};
         url += "&registration=" + encodeURIComponent(this.scorm.params.registration);
       }
 
+      if (this.scorm.params.activity_id) {
+        url += "&activity_id=" + encodeURIComponent(this.scorm.params.activity_id);
+      }
+
       self.$scorm.attr('src', url);
     }
     // SCORM 1.2 or 2004.
     else {
-      if (cmi && self.scorm.attempt_id) {
-        cmi.lms_init_url = H5PIntegration.baseUrl + '/ajax/scorm/api/fetch/' + self.scorm.attempt_id;
-        cmi.lms_commit_url = H5PIntegration.baseUrl + '/ajax/scorm/api/commit/' + self.scorm.attempt_id;
-        cmi.commit_async = false;
-      }
-
       setTimeout(function() {
         if (self.scorm.pages.length > 1) {
           self.$wrapper = $wrapper;

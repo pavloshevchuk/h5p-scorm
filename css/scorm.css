@@ -1,12 +1,3 @@
-.h5p-actions .h5p-export,
-.h5p-actions .h5p-export:hover,
-.h5p-actions .h5p-export:focus {
-  opacity: 0.3;
-  cursor: default;
-  color: inherit;
-  outline: none;
-}
-
 #sco-iframe {
   display: block;
 }
